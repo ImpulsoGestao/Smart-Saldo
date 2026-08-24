@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Smart Saldo</title>
+    <link
+    rel="icon"
+    type="image/png"
+    href="favicon.png"
+>
+
+    <link rel="stylesheet" href="style.css">
+    
+</head>
+
+<body>
+    <div class="app">
+        <aside class="side">
+            <div class="brand"><span class="logo"> <img
+                src="favicon.png"
+                alt="Logo Smart Saldo"
+            ></span>
+                <div><strong>Smart Saldo</strong><small>Receitas, despesas e saldo em um só lugar</small></div>
+            </div>
+            <div class="nav"><button id="btnHome" class="active" onclick="showView('home')">≡ Início</button><button
+                    id="btnList" onclick="showView('list')">⬆️ Lançamentos</button>
+                    <button
+                    id="btnGraph"
+                    onclick="showView('graph')"
+                >
+                    📊 Gráfico
+
+                </button></div>
+   
+            <div class="safe">✓ Seus dados ficam salvos neste navegador.</div>
+        </aside>
+        <main class="main">
+            <header>
+                <div>
+                    <p id="eyebrow">VISÃO GERAL</p>
+                    <h1 id="title">Olá! Vamos cuidar das suas finanças?</h1>
+                </div>
+                <div class="avatar">JT</div>
+            </header>
+            <section id="home">
+                <div class="homeMonthFilter">
+                    <label for="dashboardMonth">Visualizar mês</label>
+                
+                    <input
+                        id="dashboardMonth"
+                        type="month"
+                    >
+                </div>
+                <div class="balance">
+                    <p>Saldo atual</p>
+                    <h2 id="balance">R$ 0,00</h2><small>Somando todos os seus lançamentos</small>
+                </div>
+                <div class="stats">
+                    <div class="card">
+                        <p>Total de entradas</p><strong id="income" class="green">R$ 0,00</strong><small> neste
+                            mês</small>
+                    </div>
+                    <div class="card">
+                        <p>Total de despesas</p><strong id="expense" class="red">R$ 0,00</strong><small> neste
+                            mês</small>
+                    </div>
+                </div>
+                <div class="summary">
+                    <p class="eyebrow">RESUMO DO MÊS</p>
+                    <h3 id="monthName"></h3>
+                    <div class="row"><span>Entradas</span>
+                        <div class="bar"><i id="incomeBar"></i></div><strong id="income2" class="green"></strong>
+                    </div>
+                    <div class="row"><span>Despesas</span>
+                        <div class="bar"><i id="expenseBar" class="red"></i></div><strong id="expense2"
+                            class="red"></strong>
+                    </div>
+                </div>
+                <div class="actions"><button class="income" onclick="openModal('receita')">＋ Adicionar
+                        receita</button><button class="expense" onclick="openModal('despesa')">− Adicionar
+                        despesa</button></div>
+            </section>
+            <section id="list" class="hidden">
+                <div class="launchTop"><span>Acompanhe suas movimentações</span>
+                    <div class="actions"><button class="income" onclick="openModal('receita')">＋ Receita</button><button
+                            class="expense" onclick="openModal('despesa')">− Despesa</button></div>
+                </div>
+                <div class="filters"><label>Mês<input id="filterMonth" type="month"
+                            onchange="render()"></label><label>Categoria<select id="filterCategory" onchange="render()">
+                            <option>Todas</option>
+                            <option>Salário</option>
+                            <option>Renda extra</option>
+                            <option>Venda</option>
+                            <option>Alimentação</option>
+                            <option>Transporte</option>
+                            <option>Despesas de casa</option>
+                            <option>Compra de roupas</option>
+                            <option>Outros</option>
+                        </select></label><button onclick="clearFilters()">Limpar filtros</button></div>
+                <div class="list">
+                    <div class="head">
+                        <span>Descrição</span><span>Categoria</span><span>Data</span><span>Valor</span><span></span>
+                    </div>
+                    <div id="items"></div>
+                </div>
+            </section>
+            <section id="graph" class="hidden">
+                <div class="chart-header">
+                    <div>
+                        <p class="eyebrow">ANÁLISE MENSAL</p>
+                        <h2>Despesas por categoria</h2>
+                    </div>
+            
+                    <label>
+                        Selecione o mês
+            
+                        <input
+                            id="chartMonth"
+                            type="month"
+                        >
+                    </label>
+                </div>
+            
+                <div class="chart-card">
+                    <div id="chartBars" class="chart-bars">
+                        <div class="chart-empty">
+                            Nenhuma despesa encontrada.
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <div id="modal" class="backdrop hidden" onclick="closeModal(event)">
+        <div class="modal" onclick="event.stopPropagation()"><button class="close" onclick="closeModal()">×</button>
+            <p class="eyebrow">NOVO LANÇAMENTO</p>
+            <h2 id="modalTitle"></h2>
+            <form id="form"><input id="type" type="hidden"><label>Descrição<input id="description" required
+                        placeholder="Ex.: Compras do mercado"></label>
+                <div class="formrow"><label>Valor (R$)<input id="value" type="number" min="0.01" step="0.01"
+                            required></label><label>Data<input id="date" type="date" required></label></div>
+                <label>Categoria<select id="category"></select></label><button id="save" class="save">Salvar</button>
+            </form>
+        </div>
+    </div>
+    <div id="toast" class="toast hidden">✓ Lançamento salvo!</div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
