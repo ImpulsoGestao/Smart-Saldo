@@ -1,223 +1,188 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Controle suas receitas, despesas e saldo com o Smart Saldo.">
     <title>Smart Saldo</title>
-    <link
-    rel="icon"
-    type="image/png"
-    href="favicon.png"
->
-
-    <link rel="stylesheet" href="style.css">
-    
+    <link rel="icon" type="image/png" href="./favicon.png">
+    <link rel="stylesheet" href="./style.css">
 </head>
-
 <body>
-    <div id="appContent" class="app">
+    <div id="loadingScreen" class="loading-screen hidden" role="status" aria-live="polite">
+        <div class="spinner"></div>
+        <p id="loadingText">Carregando seus lançamentos...</p>
+    </div>
+
+    <div id="appContent" class="app hidden">
         <aside class="side">
-            <div class="brand"><span class="logo"> <img
-                src="favicon.png"
-                alt="Logo Smart Saldo"
-            ></span>
+            <div class="brand">
+                <span class="logo"><img src="./favicon.png" alt="Logo Smart Saldo"></span>
                 <div><strong>Smart Saldo</strong><small>Receitas, despesas e saldo em um só lugar</small></div>
             </div>
-            <div class="nav"><button id="btnHome" class="active" onclick="showView('home')">≡ Início</button><button
-                    id="btnList" onclick="showView('list')">⬆️ Lançamentos</button>
-                    <button
-                    id="btnGraph"
-                    onclick="showView('graph')"
-                >
-                    📊 Gráfico
-
-                </button></div>
-   
-            <div class="safe">✓ Seus dados ficam salvos neste navegador.</div>
+            <nav class="nav" aria-label="Menu principal">
+                <button id="btnHome" class="active" type="button" onclick="showView('home')">≡ Início</button>
+                <button id="btnList" type="button" onclick="showView('list')">⬆️ Lançamentos</button>
+                <button id="btnGraph" type="button" onclick="showView('graph')">📊 Gráfico</button>
+            </nav>
+            <div class="safe">
+                <span>✓ Seus dados ficam protegidos na sua conta.</span>
+                <button id="privacyButton" type="button">Aviso de privacidade</button>
+            </div>
         </aside>
+
         <main class="main">
-            <header>
-                <div>
-                    <p id="eyebrow">VISÃO GERAL</p>
-                    <h1 id="title">Olá! Vamos cuidar das suas finanças?</h1>
-                </div>
+            <header class="page-header">
+                <div><p id="eyebrow">VISÃO GERAL</p><h1 id="title">Olá! Vamos cuidar das suas finanças?</h1></div>
                 <div class="user-actions">
-                    <div class="avatar">JT</div>
-                
-                    <button id="logoutButton" type="button">
-                        Sair
-                    </button>
+                    <button id="profileButton" class="secondary-button" type="button">Minha conta</button>
+                    <button id="logoutButton" class="danger-outline-button" type="button">Sair</button>
                 </div>
             </header>
+
             <section id="home">
                 <div class="homeMonthFilter">
                     <label for="dashboardMonth">Visualizar mês</label>
-                
-                    <input
-                        id="dashboardMonth"
-                        type="month"
-                    >
+                    <input id="dashboardMonth" type="month">
                 </div>
                 <div class="balance">
-                    <p>Saldo atual</p>
-                    <h2 id="balance">R$ 0,00</h2><small>Somando todos os seus lançamentos</small>
+                    <p>Saldo atual</p><h2 id="balance">R$ 0,00</h2>
+                    <small>Somando todos os seus lançamentos até o mês selecionado</small>
                 </div>
                 <div class="stats">
-                    <div class="card">
-                        <p>Total de entradas</p><strong id="income" class="green">R$ 0,00</strong><small> neste
-                            mês</small>
-                    </div>
-                    <div class="card">
-                        <p>Total de despesas</p><strong id="expense" class="red">R$ 0,00</strong><small> neste
-                            mês</small>
-                    </div>
+                    <div class="card"><p>Total de entradas</p><strong id="income" class="green">R$ 0,00</strong><small>neste mês</small></div>
+                    <div class="card"><p>Total de despesas</p><strong id="expense" class="red">R$ 0,00</strong><small>neste mês</small></div>
                 </div>
                 <div class="summary">
-                    <p class="eyebrow">RESUMO DO MÊS</p>
-                    <h3 id="monthName"></h3>
-                    <div class="row"><span>Entradas</span>
-                        <div class="bar"><i id="incomeBar"></i></div><strong id="income2" class="green"></strong>
-                    </div>
-                    <div class="row"><span>Despesas</span>
-                        <div class="bar"><i id="expenseBar" class="red"></i></div><strong id="expense2"
-                            class="red"></strong>
-                    </div>
+                    <p class="eyebrow">RESUMO DO MÊS</p><h3 id="monthName"></h3>
+                    <div class="row"><span>Entradas</span><div class="bar"><i id="incomeBar"></i></div><strong id="income2" class="green"></strong></div>
+                    <div class="row"><span>Despesas</span><div class="bar"><i id="expenseBar" class="red"></i></div><strong id="expense2" class="red"></strong></div>
                 </div>
-                <div class="actions"><button class="income" onclick="openModal('receita')">＋ Adicionar
-                        receita</button><button class="expense" onclick="openModal('despesa')">− Adicionar
-                        despesa</button></div>
+                <div class="actions">
+                    <button class="income" type="button" onclick="openModal('receita')">＋ Adicionar receita</button>
+                    <button class="expense" type="button" onclick="openModal('despesa')">− Adicionar despesa</button>
+                </div>
             </section>
+
             <section id="list" class="hidden">
-                <div class="launchTop"><span>Acompanhe suas movimentações</span>
-                    <div class="actions"><button class="income" onclick="openModal('receita')">＋ Receita</button><button
-                            class="expense" onclick="openModal('despesa')">− Despesa</button></div>
-                </div>
-                <div class="filters"><label>Mês<input id="filterMonth" type="month"
-                            onchange="render()"></label><label>Categoria<select id="filterCategory" onchange="render()">
-                            <option>Todas</option>
-                            <option>Salário</option>
-                            <option>Renda extra</option>
-                            <option>Venda</option>
-                            <option>Alimentação</option>
-                            <option>Transporte</option>
-                            <option>Despesas de casa</option>
-                            <option>Compra de roupas</option>
-                            <option>Outros</option>
-                        </select></label><button onclick="clearFilters()">Limpar filtros</button></div>
-                <div class="list">
-                    <div class="head">
-                        <span>Descrição</span><span>Categoria</span><span>Data</span><span>Valor</span><span></span>
+                <div class="launchTop">
+                    <span>Acompanhe suas movimentações</span>
+                    <div class="actions">
+                        <button id="exportButton" class="export-button" type="button">Exportar Excel</button>
+                        <button class="income" type="button" onclick="openModal('receita')">＋ Receita</button>
+                        <button class="expense" type="button" onclick="openModal('despesa')">− Despesa</button>
                     </div>
+                </div>
+                <div class="filters">
+                    <label>Mês<input id="filterMonth" type="month" onchange="render()"></label>
+                    <label>Categoria<select id="filterCategory" onchange="render()">
+                        <option>Todas</option><option>Salário</option><option>Renda extra</option><option>Vendas</option>
+                        <option>Alimentação</option><option>Transporte</option><option>Compra de roupas</option>
+                        <option>Gás de cozinha</option><option>Conta de Energia</option><option>Conta de água</option>
+                        <option>Aluguel</option><option>Internet</option><option>Faculdade</option>
+                        <option>Fatura do cartão</option><option>Outros</option>
+                    </select></label>
+                    <button type="button" onclick="clearFilters()">Limpar filtros</button>
+                </div>
+                <div class="list">
+                    <div class="head"><span>Descrição</span><span>Categoria</span><span>Data</span><span>Valor</span><span>Ações</span></div>
                     <div id="items"></div>
                 </div>
             </section>
+
             <section id="graph" class="hidden">
                 <div class="chart-header">
-                    <div>
-                        <p class="eyebrow">ANÁLISE MENSAL</p>
-                        <h2>Despesas por categoria</h2>
-                    </div>
-            
-                    <label>
-                        Selecione o mês
-            
-                        <input
-                            id="chartMonth"
-                            type="month"
-                        >
-                    </label>
+                    <div><p class="eyebrow">ANÁLISE MENSAL</p><h2>Despesas por categoria</h2></div>
+                    <label>Selecione o mês<input id="chartMonth" type="month"></label>
                 </div>
-            
-                <div class="chart-card">
-                    <div id="chartBars" class="chart-bars">
-                        <div class="chart-empty">
-                            Nenhuma despesa encontrada.
-                        </div>
-                    </div>
-                </div>
+                <div class="chart-card"><div id="chartBars" class="chart-bars"><div class="chart-empty">Nenhuma despesa encontrada.</div></div></div>
             </section>
         </main>
     </div>
-    <div id="modal" class="backdrop hidden" onclick="closeModal(event)">
-        <div class="modal" onclick="event.stopPropagation()"><button class="close" onclick="closeModal()">×</button>
-            <p class="eyebrow">NOVO LANÇAMENTO</p>
-            <h2 id="modalTitle"></h2>
-            <form id="form"><input id="type" type="hidden"><label>Descrição<input id="description" required
-                        placeholder="Ex.: Compras do mercado"></label>
-                <div class="formrow"><label>Valor (R$)<input id="value" type="number" min="0.01" step="0.01"
-                            required></label><label>Data<input id="date" type="date" required></label></div>
-                <label>Categoria<select id="category"></select></label><button id="save" class="save">Salvar</button>
+
+    <section id="authScreen" class="auth-screen hidden">
+        <div class="auth-card">
+            <div class="auth-brand"><img src="./favicon.png" alt="Logo Smart Saldo"><div><strong>Smart Saldo</strong><small>Seu dinheiro sob controle</small></div></div>
+            <p class="auth-eyebrow">BEM-VINDO</p><h1 id="authTitle">Entrar na sua conta</h1>
+            <form id="authForm">
+                <label id="authNameLabel" class="hidden">Nome<input id="authName" type="text" placeholder="Como você quer ser chamado?" autocomplete="name" minlength="2" maxlength="50"></label>
+                <label>E-mail<input id="authEmail" type="email" placeholder="seuemail@exemplo.com" autocomplete="email" maxlength="120" required></label>
+                <label>Senha<div class="password-field">
+                    <input id="authPassword" type="password" placeholder="Mínimo de 6 caracteres" minlength="6" maxlength="128" autocomplete="current-password" required>
+                    <button id="togglePassword" type="button" aria-label="Mostrar senha" title="Mostrar senha">👁</button>
+                </div></label>
+                <button id="authSubmit" type="submit">Entrar</button>
+            </form>
+            <p id="authMessage" class="auth-message" aria-live="polite"></p>
+            <button id="resetPassword" class="auth-toggle" type="button">Esqueci ou quero alterar minha senha</button>
+            <button id="authToggle" class="auth-toggle" type="button">Ainda não tenho uma conta</button>
+        </div>
+    </section>
+
+    <section id="verificationScreen" class="auth-screen hidden">
+        <div class="auth-card verification-card">
+            <div class="verification-icon">✉️</div><p class="auth-eyebrow">CONFIRME SEU E-MAIL</p>
+            <h1>Enviamos um link de verificação</h1>
+            <p>Abra a mensagem enviada para <strong id="verificationEmail"></strong> e confirme seu endereço. Verifique também a caixa de spam.</p>
+            <p id="verificationMessage" class="auth-message" aria-live="polite"></p>
+            <button id="checkVerification" class="primary-button" type="button">Já confirmei meu e-mail</button>
+            <button id="resendVerification" class="auth-toggle" type="button">Reenviar e-mail de confirmação</button>
+            <button id="verificationLogout" class="auth-toggle danger-text" type="button">Sair e usar outra conta</button>
+        </div>
+    </section>
+
+    <div id="transactionModal" class="backdrop hidden" onclick="closeModal(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <button class="close" type="button" onclick="closeModal()" aria-label="Fechar">×</button>
+            <p class="eyebrow">LANÇAMENTO</p><h2 id="modalTitle"></h2>
+            <form id="form">
+                <input id="type" type="hidden">
+                <label>Descrição<input id="description" minlength="2" maxlength="80" required placeholder="Ex.: Compras do mercado"></label>
+                <div class="formrow">
+                    <label>Valor (R$)<input id="value" type="number" min="0.01" max="999999999.99" step="0.01" required></label>
+                    <label>Data<input id="date" type="date" required></label>
+                </div>
+                <label>Categoria<select id="category" required></select></label>
+                <p id="formMessage" class="form-message" aria-live="polite"></p>
+                <button id="save" class="save" type="submit">Salvar</button>
             </form>
         </div>
     </div>
-    <div id="toast" class="toast hidden">✓ Lançamento salvo!</div>
 
-   
-
-
-<section id="authScreen" class="auth-screen hidden">
-    <div class="auth-card">
-        <div class="auth-brand">
-            <img src="./favicon.png" alt="Logo Smart Saldo">
-
-            <div>
-                <strong>Smart Saldo</strong>
-                <small>Seu dinheiro sob controle</small>
+    <div id="profileModal" class="backdrop hidden" onclick="closeProfileModal(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <button class="close" type="button" onclick="closeProfileModal()" aria-label="Fechar">×</button>
+            <p class="eyebrow">MINHA CONTA</p><h2>Dados do perfil</h2>
+            <form id="profileForm">
+                <label>Nome<input id="profileName" type="text" minlength="2" maxlength="50" required></label>
+                <label>E-mail<input id="profileEmail" type="email" disabled></label>
+                <button class="primary-button" type="submit">Salvar novo nome</button>
+            </form>
+            <div class="danger-zone">
+                <h3>Excluir conta</h3><p>Esta ação apaga permanentemente a conta e todos os lançamentos.</p>
+                <label>Digite sua senha atual para confirmar<input id="deleteAccountPassword" type="password" autocomplete="current-password"></label>
+                <button id="deleteAccountButton" class="danger-button" type="button">Excluir minha conta</button>
             </div>
+            <p id="profileMessage" class="form-message" aria-live="polite"></p>
         </div>
-
-        <p class="auth-eyebrow">BEM-VINDO</p>
-        <h1 id="authTitle">Entrar na sua conta</h1>
-
-        <form id="authForm">
-            <label>
-                E-mail
-                <input
-                    id="authEmail"
-                    type="email"
-                    placeholder="seuemail@exemplo.com"
-                    autocomplete="email"
-                    required
-                >
-            </label>
-
-            <label>
-                Senha
-                <div class="password-field">
-                    <input
-                        id="authPassword"
-                        type="password"
-                        placeholder="Mínimo de 6 caracteres"
-                        minlength="6"
-                        autocomplete="current-password"
-                        required
-                    >
-                
-                    <button
-                        id="togglePassword"
-                        type="button"
-                        aria-label="Mostrar senha"
-                        title="Mostrar senha"
-                    >
-                        👁
-                    </button>
-                </div>
-            </label>
-
-            <button id="authSubmit" type="submit">
-                Entrar
-            </button>
-        </form>
-
-        <p id="authMessage" class="auth-message"></p>
-
-        <button id="authToggle" class="auth-toggle" type="button">
-            Ainda não tenho uma conta
-        </button>
     </div>
-</section>
-<script src="script.js"></script>
-<script type="module" src="./auth.js"></script>
+
+    <div id="privacyModal" class="backdrop hidden" onclick="closePrivacyModal(event)">
+        <div class="modal privacy-modal" onclick="event.stopPropagation()">
+            <button class="close" type="button" onclick="closePrivacyModal()" aria-label="Fechar">×</button>
+            <p class="eyebrow">PRIVACIDADE</p><h2>Como seus dados são utilizados</h2>
+            <p>O Smart Saldo utiliza seu nome e e-mail para identificar sua conta.</p>
+            <p>Receitas e despesas são armazenadas no Firebase e ficam vinculadas ao seu usuário.</p>
+            <p>Outros usuários não podem acessar seus lançamentos pelas regras de segurança do banco.</p>
+            <p>Suas informações não devem ser vendidas ou compartilhadas para publicidade.</p>
+            <p>Você pode excluir sua conta e seus lançamentos em <strong>Minha conta</strong>.</p>
+            <button class="primary-button" type="button" onclick="closePrivacyModal()">Entendi</button>
+        </div>
+    </div>
+
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script src="./script.js"></script>
+    <script type="module" src="./auth.js"></script>
 </body>
 </html>

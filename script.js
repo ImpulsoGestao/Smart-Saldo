@@ -1,15 +1,26 @@
-// Recupera os lançamentos salvos no navegador
-let data = JSON.parse(
-    localStorage.getItem("financeData") || "[]"
-);
+/* ==================================================
+   ESTADO DO APLICATIVO
+================================================== */
 
-// Formatação dos valores em reais
+let data = [];
+let currentUserId = null;
+let currentUserName = "";
+let editingTransactionId = null;
+
 const formatador = new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL"
 });
 
-// Elementos principais da página
+const now = new Date();
+const today = now.toISOString().slice(0, 10);
+const currentMonth =
+    now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
+
+/* ==================================================
+   ELEMENTOS DA INTERFACE
+================================================== */
+
 const home = document.getElementById("home");
 const list = document.getElementById("list");
 const graph = document.getElementById("graph");
@@ -24,7 +35,6 @@ const income = document.getElementById("income");
 const income2 = document.getElementById("income2");
 const expense = document.getElementById("expense");
 const expense2 = document.getElementById("expense2");
-
 const incomeBar = document.getElementById("incomeBar");
 const expenseBar = document.getElementById("expenseBar");
 
@@ -33,8 +43,10 @@ const filterCategory = document.getElementById("filterCategory");
 const items = document.getElementById("items");
 const chartMonth = document.getElementById("chartMonth");
 const chartBars = document.getElementById("chartBars");
+const dashboardMonth = document.getElementById("dashboardMonth");
+const monthName = document.getElementById("monthName");
 
-const modal = document.getElementById("modal");
+const transactionModal = document.getElementById("transactionModal");
 const modalTitle = document.getElementById("modalTitle");
 const form = document.getElementById("form");
 const type = document.getElementById("type");
@@ -43,493 +55,583 @@ const value = document.getElementById("value");
 const date = document.getElementById("date");
 const category = document.getElementById("category");
 const save = document.getElementById("save");
+const formMessage = document.getElementById("formMessage");
+
+const loadingScreen = document.getElementById("loadingScreen");
+const loadingText = document.getElementById("loadingText");
+const exportButton = document.getElementById("exportButton");
+const privacyButton = document.getElementById("privacyButton");
+const privacyModal = document.getElementById("privacyModal");
 const toast = document.getElementById("toast");
-const monthName = document.getElementById("monthName");
-const dashboardMonth = document.getElementById("dashboardMonth");
 
-// Data atual
-const now = new Date();
+/* ==================================================
+   CONFIGURAÇÃO INICIAL
+================================================== */
 
-const currentMonth =
-    now.getFullYear() +
-    "-" +
-    String(now.getMonth() + 1).padStart(2, "0");
-// Coloca o mês atual na tela inicial
 dashboardMonth.value = currentMonth;
-dashboardMonth.addEventListener("change", render);
-
-// Coloca o mês atual no filtro
 filterMonth.value = currentMonth;
-// Coloca o mês atual no gráfico
 chartMonth.value = currentMonth;
+date.value = today;
+date.max = today;
 
-// Atualiza o gráfico quando o mês for alterado
-chartMonth.addEventListener(
-    "change",
-    renderChart
-);
-
-// Coloca a data atual no formulário
-date.value = new Date().toISOString().slice(0, 10);
-
-// Mostra o nome do mês
-monthName.textContent = now.toLocaleDateString("pt-BR", {
-    month: "long",
-    year: "numeric"
+dashboardMonth.addEventListener("change", render);
+chartMonth.addEventListener("change", renderChart);
+exportButton.addEventListener("click", exportToExcel);
+privacyButton.addEventListener("click", function () {
+    privacyModal.classList.remove("hidden");
 });
 
-// Alterna entre início e lançamentos
+window.addEventListener(
+    "smart-saldo-auth-changed",
+    async function (event) {
+        currentUserId = event.detail.userId;
+        currentUserName = event.detail.userName || "";
+        updateGreeting();
+
+        if (!currentUserId) {
+            data = [];
+            render();
+            renderChart();
+            return;
+        }
+
+        showLoading("Carregando seus lançamentos...");
+
+        try {
+            data = await window.smartSaldoFirebase.loadTransactions(currentUserId);
+            render();
+            renderChart();
+        } catch (error) {
+            console.error("Erro ao carregar lançamentos:", error);
+            showToast("Não foi possível carregar seus lançamentos.", "error");
+        } finally {
+            hideLoading();
+        }
+    }
+);
+
+/* ==================================================
+   NAVEGAÇÃO E SAUDAÇÃO
+================================================== */
+
+function updateGreeting() {
+    title.textContent = currentUserName
+        ? `Olá, ${currentUserName}! Vamos cuidar das suas finanças?`
+        : "Olá! Vamos cuidar das suas finanças?";
+}
+
 function showView(view) {
-    home.classList.toggle(
-        "hidden",
-        view !== "home"
-    );
+    home.classList.toggle("hidden", view !== "home");
+    list.classList.toggle("hidden", view !== "list");
+    graph.classList.toggle("hidden", view !== "graph");
 
-    list.classList.toggle(
-        "hidden",
-        view !== "list"
-    );
-
-    graph.classList.toggle(
-        "hidden",
-        view !== "graph"
-    );
-
-    btnHome.classList.toggle(
-        "active",
-        view === "home"
-    );
-
-    btnList.classList.toggle(
-        "active",
-        view === "list"
-    );
-
-    btnGraph.classList.toggle(
-        "active",
-        view === "graph"
-    );
+    btnHome.classList.toggle("active", view === "home");
+    btnList.classList.toggle("active", view === "list");
+    btnGraph.classList.toggle("active", view === "graph");
 
     if (view === "home") {
         eyebrow.textContent = "VISÃO GERAL";
-
-        title.textContent =
-            "Olá! Vamos cuidar das suas finanças?";
-    }
-
-    if (view === "list") {
-        eyebrow.textContent =
-            "ORGANIZE SEU DINHEIRO";
-
+        updateGreeting();
+    } else if (view === "list") {
+        eyebrow.textContent = "ORGANIZE SEU DINHEIRO";
         title.textContent = "Lançamentos";
-    }
-
-    if (view === "graph") {
-        eyebrow.textContent =
-            "ANALISE SEUS GASTOS";
-
+    } else {
+        eyebrow.textContent = "ANALISE SEUS GASTOS";
         title.textContent = "Gráficos";
+        renderChart();
     }
 
     render();
 }
 
-// Abre o formulário de receita ou despesa
-function openModal(transactionType) {
+/* ==================================================
+   CADASTRO E EDIÇÃO DE LANÇAMENTOS
+================================================== */
+
+const incomeCategories = ["Salário", "Renda extra", "Vendas", "Outros"];
+const expenseCategories = [
+    "Alimentação",
+    "Transporte",
+    "Compra de roupas",
+    "Gás de cozinha",
+    "Conta de Energia",
+    "Conta de água",
+    "Aluguel",
+    "Internet",
+    "Faculdade",
+    "Fatura do cartão",
+    "Outros"
+];
+
+function openModal(transactionType, transactionId = null) {
+    editingTransactionId = transactionId;
     type.value = transactionType;
+    formMessage.textContent = "";
 
-    modalTitle.textContent =
-        transactionType === "receita"
-            ? "Adicionar receita"
-            : "Adicionar despesa";
+    description.placeholder = transactionType === "receita"
+        ? "Ex.: Salário"
+        : "Ex.: Compras do mercado";
 
-    save.textContent =
-        transactionType === "receita"
-            ? "Salvar receita"
-            : "Salvar despesa";
-
-    save.className =
-        transactionType === "receita"
-            ? "save income"
-            : "save expense";
-
-    const incomeCategories = [
-        "Salário",
-        "Renda extra",
-        "Vendas",
-        "Outros"
-    ];
-
-    const expenseCategories = [
-        "Alimentação",
-        "Transporte",
-        "Compra de roupas",
-        "Gás de cozinha",
-        "Conta de Energia",
-        "Conta de água",
-        "Aluguel",
-        "internet",
-        "Faculdade",
-        "fatura do cartão",
-
-        "Outros"
-    ];
-
-    const categories =
-        transactionType === "receita"
-            ? incomeCategories
-            : expenseCategories;
+    const categories = transactionType === "receita"
+        ? incomeCategories
+        : expenseCategories;
 
     category.innerHTML = categories
         .map(function (categoryName) {
-            return `<option value="${categoryName}">
-                ${categoryName}
-            </option>`;
+            return `<option value="${escapeHTML(categoryName)}">${escapeHTML(categoryName)}</option>`;
         })
         .join("");
 
-    modal.classList.remove("hidden");
+    const transaction = transactionId === null
+        ? null
+        : data.find(function (item) {
+            return item.id === transactionId;
+        });
+
+    modalTitle.textContent = transaction
+        ? "Editar lançamento"
+        : transactionType === "receita" ? "Adicionar receita" : "Adicionar despesa";
+
+    save.textContent = transaction ? "Salvar alterações" : "Salvar lançamento";
+    save.className = transactionType === "receita" ? "save income" : "save expense";
+
+    if (transaction) {
+        description.value = transaction.description;
+        value.value = transaction.value;
+        date.value = transaction.date;
+        category.value = categories.find(function (categoryName) {
+            return categoryName.toLowerCase() === transaction.category.toLowerCase();
+        }) || "Outros";
+    } else {
+        form.reset();
+        type.value = transactionType;
+        date.value = today;
+        category.innerHTML = categories
+            .map(function (categoryName) {
+                return `<option value="${escapeHTML(categoryName)}">${escapeHTML(categoryName)}</option>`;
+            })
+            .join("");
+    }
+
+    transactionModal.classList.remove("hidden");
+    description.focus();
 }
 
-// Fecha o formulário
-function closeModal() {
-    modal.classList.add("hidden");
+function editTransaction(transactionId) {
+    const transaction = data.find(function (item) {
+        return item.id === transactionId;
+    });
+
+    if (transaction) {
+        openModal(transaction.type, transactionId);
+    }
 }
 
-// Salva uma nova receita ou despesa
-form.addEventListener("submit", function (event) {
-    event.preventDefault();
-
-    const newTransaction = {
-        id: Date.now(),
-        type: type.value,
-        description: description.value.trim(),
-        value: Number(value.value),
-        date: date.value,
-        category: category.value
-    };
-
-    data.unshift(newTransaction);
-
-    saveData();
-
-    form.reset();
-
-    date.value = new Date().toISOString().slice(0, 10);
-
-    closeModal();
-    showToast();
-    render();
-});
-
-// Salva os lançamentos no navegador
-function saveData() {
-    localStorage.setItem(
-        "financeData",
-        JSON.stringify(data)
-    );
-}
-
-// Exclui um lançamento
-function del(id) {
-    const confirmation = confirm(
-        "Deseja realmente excluir este lançamento?"
-    );
-
-    if (!confirmation) {
+function closeModal(event) {
+    if (event && event.target !== transactionModal) {
         return;
     }
 
-    data = data.filter(function (transaction) {
-        return transaction.id !== id;
-    });
-
-    saveData();
-    render();
+    transactionModal.classList.add("hidden");
+    editingTransactionId = null;
+    formMessage.textContent = "";
 }
 
-// Limpa os filtros
+form.addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    if (!currentUserId) {
+        showFormMessage("Entre na sua conta para salvar um lançamento.");
+        return;
+    }
+
+    const cleanDescription = description.value.trim().replace(/\s+/g, " ");
+    const numericValue = Number(value.value);
+    const selectedDate = date.value;
+    const selectedCategory = category.value;
+
+    const validationMessage = validateTransaction(
+        cleanDescription,
+        numericValue,
+        selectedDate,
+        selectedCategory
+    );
+
+    if (validationMessage) {
+        showFormMessage(validationMessage);
+        return;
+    }
+
+    const transaction = {
+        id: editingTransactionId ?? Date.now(),
+        type: type.value,
+        description: cleanDescription,
+        value: Math.round(numericValue * 100) / 100,
+        date: selectedDate,
+        category: selectedCategory
+    };
+
+    const wasEditing = editingTransactionId !== null;
+
+    save.disabled = true;
+    showFormMessage("Salvando...", "success");
+
+    try {
+        await window.smartSaldoFirebase.saveTransaction(currentUserId, transaction);
+
+        if (editingTransactionId === null) {
+            data.unshift(transaction);
+        } else {
+            data = data.map(function (item) {
+                return item.id === editingTransactionId ? transaction : item;
+            });
+        }
+
+        closeModal();
+        render();
+        renderChart();
+        showToast(
+            wasEditing ? "Lançamento atualizado!" : "Lançamento salvo!"
+        );
+    } catch (error) {
+        console.error("Erro ao salvar lançamento:", error);
+        showFormMessage("Não foi possível salvar. Verifique sua conexão.");
+    } finally {
+        save.disabled = false;
+    }
+});
+
+async function del(transactionId) {
+    const confirmed = window.confirm("Deseja realmente excluir este lançamento?");
+
+    if (!confirmed || !currentUserId) {
+        return;
+    }
+
+    showLoading("Excluindo lançamento...");
+
+    try {
+        await window.smartSaldoFirebase.deleteTransaction(currentUserId, transactionId);
+        data = data.filter(function (transaction) {
+            return transaction.id !== transactionId;
+        });
+        render();
+        renderChart();
+        showToast("Lançamento excluído!");
+    } catch (error) {
+        console.error("Erro ao excluir lançamento:", error);
+        showToast("Não foi possível excluir o lançamento.", "error");
+    } finally {
+        hideLoading();
+    }
+}
+
+function validateTransaction(text, amount, transactionDate, selectedCategory) {
+    if (text.length < 2 || text.length > 80) {
+        return "A descrição deve ter entre 2 e 80 caracteres.";
+    }
+
+    if (!Number.isFinite(amount) || amount <= 0 || amount > 999999999.99) {
+        return "Digite um valor válido maior que zero.";
+    }
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(transactionDate)) {
+        return "Selecione uma data válida.";
+    }
+
+    if (transactionDate > today) {
+        return "A data do lançamento não pode estar no futuro.";
+    }
+
+    const validCategories = type.value === "receita"
+        ? incomeCategories
+        : expenseCategories;
+
+    if (!validCategories.includes(selectedCategory)) {
+        return "Selecione uma categoria válida.";
+    }
+
+    return "";
+}
+
+/* ==================================================
+   FILTROS, CÁLCULOS E LISTA
+================================================== */
+
 function clearFilters() {
     filterMonth.value = "";
     filterCategory.value = "Todas";
-
     render();
 }
 
-// Mostra a mensagem de sucesso
-function showToast() {
-    toast.classList.remove("hidden");
-
-    setTimeout(function () {
-        toast.classList.add("hidden");
-    }, 2000);
-}
-
-// Protege textos digitados pelo usuário
-function escapeHTML(text) {
-    const element = document.createElement("div");
-
-    element.textContent = text;
-
-    return element.innerHTML;
-}
-
-// Atualiza todos os valores da tela
-function render() {
-    const dashboardSelectedMonth =
-    dashboardMonth.value || currentMonth;
-    const dashboardMonthParts =
-    dashboardSelectedMonth.split("-");
-
-const dashboardYear =
-    Number(dashboardMonthParts[0]);
-
-const dashboardMonthNumber =
-    Number(dashboardMonthParts[1]) - 1;
-
-const dashboardDate =
-    new Date(dashboardYear, dashboardMonthNumber, 1);
-
-monthName.textContent =
-    dashboardDate.toLocaleDateString("pt-BR", {
-        month: "long",
-        year: "numeric"
-    });
-    const monthlyTransactions = data.filter(
-        function (transaction) {
-            return transaction.date.startsWith(dashboardSelectedMonth);
-        }
-    );
-
-    const totalIncome = monthlyTransactions
-        .filter(function (transaction) {
-            return transaction.type === "receita";
-        })
-        .reduce(function (total, transaction) {
-            return total + transaction.value;
-        }, 0);
-
-    const totalExpense = monthlyTransactions
-        .filter(function (transaction) {
-            return transaction.type === "despesa";
-        })
-        .reduce(function (total, transaction) {
-            return total + transaction.value;
-        }, 0);
-
-        const transactionsUntilSelectedMonth = data.filter(
-            function (transaction) {
-                const transactionMonth = transaction.date.slice(0, 7);
-        
-                return transactionMonth <= dashboardSelectedMonth;
-            }
-        );
-        
-        const currentBalance = transactionsUntilSelectedMonth.reduce(
-            function (total, transaction) {
-                if (transaction.type === "receita") {
-                    return total + transaction.value;
-                }
-        
-                return total - transaction.value;
-            },
-            0
-        );
-       
-   
-    // Atualiza os cartões
-    balance.textContent = formatador.format(currentBalance);
-
-    income.textContent = formatador.format(totalIncome);
-    income2.textContent = formatador.format(totalIncome);
-
-    expense.textContent = formatador.format(totalExpense);
-    expense2.textContent = formatador.format(totalExpense);
-
-    // Atualiza as barras do resumo
-    const biggestValue = Math.max(
-        totalIncome,
-        totalExpense,
-        1
-    );
-
-    incomeBar.style.width =
-        (totalIncome / biggestValue) * 100 + "%";
-
-    expenseBar.style.width =
-        (totalExpense / biggestValue) * 100 + "%";
-
-    // Aplica os filtros
+function getFilteredTransactions() {
     const selectedMonth = filterMonth.value;
     const selectedCategory = filterCategory.value;
 
-    const filteredTransactions = data.filter(
-        function (transaction) {
-            const monthMatches =
-                selectedMonth === "" ||
-                transaction.date.startsWith(selectedMonth);
+    return data.filter(function (transaction) {
+        const monthMatches = !selectedMonth || transaction.date.startsWith(selectedMonth);
+        const categoryMatches =
+            selectedCategory === "Todas" || transaction.category === selectedCategory;
 
-            const categoryMatches =
-                selectedCategory === "Todas" ||
-                transaction.category === selectedCategory;
+        return monthMatches && categoryMatches;
+    });
+}
 
-            return monthMatches && categoryMatches;
-        }
+function render() {
+    const dashboardSelectedMonth = dashboardMonth.value || currentMonth;
+    const parts = dashboardSelectedMonth.split("-");
+    const dashboardDate = new Date(Number(parts[0]), Number(parts[1]) - 1, 1);
+
+    monthName.textContent = dashboardDate.toLocaleDateString("pt-BR", {
+        month: "long",
+        year: "numeric"
+    });
+
+    const monthlyTransactions = data.filter(function (transaction) {
+        return transaction.date.startsWith(dashboardSelectedMonth);
+    });
+
+    const totalIncome = sumByType(monthlyTransactions, "receita");
+    const totalExpense = sumByType(monthlyTransactions, "despesa");
+
+    const transactionsUntilSelectedMonth = data.filter(function (transaction) {
+        return transaction.date.slice(0, 7) <= dashboardSelectedMonth;
+    });
+
+    const currentBalance = transactionsUntilSelectedMonth.reduce(
+        function (total, transaction) {
+            return transaction.type === "receita"
+                ? total + transaction.value
+                : total - transaction.value;
+        },
+        0
     );
 
-    // Mostra mensagem caso não existam lançamentos
-    if (filteredTransactions.length === 0) {
-        items.innerHTML = `
-            <div class="empty">
-                Nenhum lançamento encontrado.
-            </div>
-        `;
+    balance.textContent = formatador.format(currentBalance);
+    income.textContent = formatador.format(totalIncome);
+    income2.textContent = formatador.format(totalIncome);
+    expense.textContent = formatador.format(totalExpense);
+    expense2.textContent = formatador.format(totalExpense);
 
+    const biggestValue = Math.max(totalIncome, totalExpense, 1);
+    incomeBar.style.width = (totalIncome / biggestValue) * 100 + "%";
+    expenseBar.style.width = (totalExpense / biggestValue) * 100 + "%";
+
+    const filteredTransactions = getFilteredTransactions();
+
+    if (filteredTransactions.length === 0) {
+        items.innerHTML = '<div class="empty">Nenhum lançamento encontrado.</div>';
         return;
     }
 
-    // Monta a lista de lançamentos
     items.innerHTML = filteredTransactions
         .map(function (transaction) {
             const formattedDate = new Date(
                 transaction.date + "T12:00:00"
             ).toLocaleDateString("pt-BR");
 
-            const valueClass =
-                transaction.type === "receita"
-                    ? "green"
-                    : "red";
-
-            const signal =
-                transaction.type === "receita"
-                    ? "+"
-                    : "−";
+            const valueClass = transaction.type === "receita" ? "green" : "red";
+            const signal = transaction.type === "receita" ? "+" : "−";
 
             return `
                 <div class="item">
-                    <span>
-                        <strong>
-                            ${escapeHTML(transaction.description)}
-                        </strong>
-                    </span>
-
-                    <span>
-                        <b>${escapeHTML(transaction.category)}</b>
-                    </span>
-
+                    <span><strong>${escapeHTML(transaction.description)}</strong></span>
+                    <span><b>${escapeHTML(transaction.category)}</b></span>
                     <span>${formattedDate}</span>
-
-                    <strong class="${valueClass}">
-                        ${signal} ${formatador.format(transaction.value)}
-                    </strong>
-
-                    <button
-                        type="button"
-                        onclick="del(${transaction.id})"
-                        aria-label="Excluir lançamento"
-                    >
-                        ×
-                    </button>
-                </div>
-            `;
+                    <strong class="${valueClass}">${signal} ${formatador.format(transaction.value)}</strong>
+                    <span class="item-actions">
+                        <button class="edit-button" type="button" onclick="editTransaction(${transaction.id})" aria-label="Editar lançamento">✎</button>
+                        <button class="delete-button" type="button" onclick="del(${transaction.id})" aria-label="Excluir lançamento">×</button>
+                    </span>
+                </div>`;
         })
         .join("");
 }
-// Cria o gráfico de despesas por categoria
+
+function sumByType(transactions, transactionType) {
+    return transactions
+        .filter(function (transaction) {
+            return transaction.type === transactionType;
+        })
+        .reduce(function (total, transaction) {
+            return total + transaction.value;
+        }, 0);
+}
+
+/* ==================================================
+   GRÁFICO
+================================================== */
+
 function renderChart() {
     const selectedMonth = chartMonth.value;
-
-    // Seleciona somente despesas do mês escolhido
-    const monthExpenses = data.filter(
-        function (transaction) {
-            const isExpense =
-                transaction.type === "despesa";
-
-            const isSelectedMonth =
-                selectedMonth === "" ||
-                transaction.date.startsWith(
-                    selectedMonth
-                );
-
-            return isExpense && isSelectedMonth;
-        }
-    );
-
-    // Objeto que armazenará os valores por categoria
     const categoryTotals = {};
 
-    monthExpenses.forEach(
-        function (transaction) {
-            const categoryName =
-                transaction.category;
+    data.filter(function (transaction) {
+        return transaction.type === "despesa" &&
+            (!selectedMonth || transaction.date.startsWith(selectedMonth));
+    }).forEach(function (transaction) {
+        categoryTotals[transaction.category] =
+            (categoryTotals[transaction.category] || 0) + transaction.value;
+    });
 
-            if (
-                categoryTotals[categoryName] ===
-                undefined
-            ) {
-                categoryTotals[categoryName] = 0;
-            }
-
-            categoryTotals[categoryName] +=
-                transaction.value;
-        }
-    );
-
-    // Converte o objeto em uma lista de categorias
-    const categories = Object.entries(
-        categoryTotals
-    ).sort(function (first, second) {
+    const categories = Object.entries(categoryTotals).sort(function (first, second) {
         return second[1] - first[1];
     });
 
-    // Se não houver despesas
     if (categories.length === 0) {
-        chartBars.innerHTML = `
-            <div class="chart-empty">
-                Nenhuma despesa encontrada neste mês.
-            </div>
-        `;
-
+        chartBars.innerHTML =
+            '<div class="chart-empty">Nenhuma despesa encontrada neste mês.</div>';
         return;
     }
 
-    // Encontra o maior valor
-    const biggestValue = Math.max(
-        ...categories.map(function (category) {
-            return category[1];
-        })
+    const biggestValue = Math.max(...categories.map(function (item) {
+        return item[1];
+    }));
+
+    chartBars.innerHTML = categories.map(function ([categoryName, categoryValue]) {
+        const percentage = (categoryValue / biggestValue) * 100;
+
+        return `
+            <div class="chart-row">
+                <span class="chart-category">${escapeHTML(categoryName)}</span>
+                <div class="chart-track"><div class="chart-fill" style="width: ${percentage}%"></div></div>
+                <strong class="chart-value">${formatador.format(categoryValue)}</strong>
+            </div>`;
+    }).join("");
+}
+
+/* ==================================================
+   EXPORTAÇÃO PARA EXCEL
+================================================== */
+
+function exportToExcel() {
+    const transactions = getFilteredTransactions();
+
+    if (transactions.length === 0) {
+        showToast("Não existem lançamentos para exportar.", "error");
+        return;
+    }
+
+    if (typeof XLSX === "undefined") {
+        showToast(
+            "Não foi possível carregar o gerador de Excel. Verifique sua conexão.",
+            "error"
+        );
+        return;
+    }
+
+    const spreadsheetRows = transactions.map(function (transaction) {
+        return {
+            Tipo: transaction.type === "receita" ? "Receita" : "Despesa",
+            Descrição: protectSpreadsheetText(transaction.description),
+            Categoria: protectSpreadsheetText(transaction.category),
+            Data: new Date(transaction.date + "T12:00:00"),
+            Valor: transaction.value
+        };
+    });
+
+    const totalIncome = sumByType(transactions, "receita");
+    const totalExpense = sumByType(transactions, "despesa");
+    const selectedPeriod = filterMonth.value || "Todos os períodos";
+
+    const summaryRows = [
+        ["SMART SALDO — RESUMO"],
+        ["Período", selectedPeriod],
+        ["Total de receitas", totalIncome],
+        ["Total de despesas", totalExpense],
+        ["Saldo do período", totalIncome - totalExpense]
+    ];
+
+    const transactionsSheet = XLSX.utils.json_to_sheet(spreadsheetRows);
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryRows);
+
+    transactionsSheet["!cols"] = [
+        { wch: 12 },
+        { wch: 32 },
+        { wch: 24 },
+        { wch: 14 },
+        { wch: 16 }
+    ];
+
+    summarySheet["!cols"] = [{ wch: 24 }, { wch: 20 }];
+
+    for (let row = 2; row <= spreadsheetRows.length + 1; row += 1) {
+        const dateCell = transactionsSheet[`D${row}`];
+        const valueCell = transactionsSheet[`E${row}`];
+
+        if (dateCell) {
+            dateCell.z = "dd/mm/yyyy";
+        }
+
+        if (valueCell) {
+            valueCell.z = 'R$ #,##0.00';
+        }
+    }
+
+    ["B3", "B4", "B5"].forEach(function (cellAddress) {
+        if (summarySheet[cellAddress]) {
+            summarySheet[cellAddress].z = 'R$ #,##0.00';
+        }
+    });
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, transactionsSheet, "Lançamentos");
+    XLSX.utils.book_append_sheet(workbook, summarySheet, "Resumo");
+
+    XLSX.writeFile(
+        workbook,
+        `smart-saldo-${filterMonth.value || "todos"}.xlsx`
     );
 
-    // Cria as barras do gráfico
-    chartBars.innerHTML = categories
-        .map(function (category) {
-            const categoryName = category[0];
-            const categoryValue = category[1];
-
-            const percentage =
-                (categoryValue / biggestValue) * 100;
-
-            return `
-                <div class="chart-row">
-                    <span class="chart-category">
-                        ${escapeHTML(categoryName)}
-                    </span>
-
-                    <div class="chart-track">
-                        <div
-                            class="chart-fill"
-                            style="width: ${percentage}%"
-                        ></div>
-                    </div>
-
-                    <strong class="chart-value">
-                        ${formatador.format(categoryValue)}
-                    </strong>
-                </div>
-            `;
-        })
-        .join("");
+    showToast("Planilha do Excel exportada!");
 }
-// Exibe as informações ao abrir o aplicativo
+
+function protectSpreadsheetText(valueToProtect) {
+    const text = String(valueToProtect);
+    return /^[=+\-@]/.test(text) ? "'" + text : text;
+}
+
+/* ==================================================
+   MODAL DE PRIVACIDADE E FEEDBACK
+================================================== */
+
+function closePrivacyModal(event) {
+    if (event && event.target !== privacyModal) {
+        return;
+    }
+
+    privacyModal.classList.add("hidden");
+}
+
+function showLoading(message) {
+    loadingText.textContent = message;
+    loadingScreen.classList.remove("hidden");
+}
+
+function hideLoading() {
+    loadingScreen.classList.add("hidden");
+}
+
+function showToast(message, type = "success") {
+    toast.textContent = message;
+    toast.classList.toggle("error-toast", type === "error");
+    toast.classList.remove("hidden");
+
+    window.setTimeout(function () {
+        toast.classList.add("hidden");
+    }, 2500);
+}
+
+function showFormMessage(message, type = "error") {
+    formMessage.textContent = message;
+    formMessage.classList.toggle("success-message", type === "success");
+}
+
+function escapeHTML(text) {
+    const element = document.createElement("div");
+    element.textContent = text;
+    return element.innerHTML;
+}
+
 render();
 renderChart();
