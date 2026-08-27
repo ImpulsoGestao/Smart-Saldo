@@ -16,7 +16,7 @@
 </head>
 
 <body>
-    <div class="app">
+    <div id="appContent" class="app">
         <aside class="side">
             <div class="brand"><span class="logo"> <img
                 src="favicon.png"
@@ -42,7 +42,13 @@
                     <p id="eyebrow">VISÃO GERAL</p>
                     <h1 id="title">Olá! Vamos cuidar das suas finanças?</h1>
                 </div>
-                <div class="avatar">JT</div>
+                <div class="user-actions">
+                    <div class="avatar">JT</div>
+                
+                    <button id="logoutButton" type="button">
+                        Sair
+                    </button>
+                </div>
             </header>
             <section id="home">
                 <div class="homeMonthFilter">
@@ -147,7 +153,71 @@
     </div>
     <div id="toast" class="toast hidden">✓ Lançamento salvo!</div>
 
-    <script src="script.js"></script>
-</body>
+   
 
+
+<section id="authScreen" class="auth-screen hidden">
+    <div class="auth-card">
+        <div class="auth-brand">
+            <img src="./favicon.png" alt="Logo Smart Saldo">
+
+            <div>
+                <strong>Smart Saldo</strong>
+                <small>Seu dinheiro sob controle</small>
+            </div>
+        </div>
+
+        <p class="auth-eyebrow">BEM-VINDO</p>
+        <h1 id="authTitle">Entrar na sua conta</h1>
+
+        <form id="authForm">
+            <label>
+                E-mail
+                <input
+                    id="authEmail"
+                    type="email"
+                    placeholder="seuemail@exemplo.com"
+                    autocomplete="email"
+                    required
+                >
+            </label>
+
+            <label>
+                Senha
+                <div class="password-field">
+                    <input
+                        id="authPassword"
+                        type="password"
+                        placeholder="Mínimo de 6 caracteres"
+                        minlength="6"
+                        autocomplete="current-password"
+                        required
+                    >
+                
+                    <button
+                        id="togglePassword"
+                        type="button"
+                        aria-label="Mostrar senha"
+                        title="Mostrar senha"
+                    >
+                        👁
+                    </button>
+                </div>
+            </label>
+
+            <button id="authSubmit" type="submit">
+                Entrar
+            </button>
+        </form>
+
+        <p id="authMessage" class="auth-message"></p>
+
+        <button id="authToggle" class="auth-toggle" type="button">
+            Ainda não tenho uma conta
+        </button>
+    </div>
+</section>
+<script src="script.js"></script>
+<script type="module" src="./auth.js"></script>
+</body>
 </html>

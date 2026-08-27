@@ -1326,4 +1326,251 @@ h1 {
         white-space: nowrap;
         text-align: right;
     }
+}/* =====================================
+   TELA DE LOGIN — SMART SALDO
+===================================== */
+
+.auth-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+
+    display: grid;
+    place-items: center;
+    padding: 24px;
+
+    background:
+        radial-gradient(
+            circle at top left,
+            rgba(16, 167, 123, 0.22),
+            transparent 38%
+        ),
+        linear-gradient(135deg, #f3f8f6, #e8f2ef);
+}
+
+.auth-screen.hidden {
+    display: none !important;
+}
+
+.auth-card {
+    box-sizing: border-box;
+    width: min(430px, 100%);
+    padding: 34px;
+
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid #d9e5e1;
+    border-radius: 24px;
+    box-shadow: 0 24px 60px rgba(18, 48, 45, 0.18);
+}
+
+.auth-brand {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    margin-bottom: 30px;
+}
+
+.auth-brand img {
+    width: 52px;
+    height: 52px;
+    object-fit: contain;
+    border-radius: 14px;
+}
+
+.auth-brand div {
+    display: flex;
+    flex-direction: column;
+}
+
+.auth-brand strong {
+    color: #12302d;
+    font-size: 21px;
+    font-weight: 800;
+}
+
+.auth-brand small {
+    margin-top: 3px;
+    color: #748381;
+    font-size: 13px;
+}
+
+.auth-eyebrow {
+    margin: 0 0 8px;
+
+    color: #10a77b;
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 0.15em;
+}
+
+.auth-card h1 {
+    margin: 0 0 25px;
+
+    color: #12302d;
+    font-size: 30px;
+    line-height: 1.15;
+}
+
+.auth-card form {
+    display: grid;
+    gap: 17px;
+}
+
+.auth-card label {
+    display: grid;
+    gap: 7px;
+
+    color: #3f4747;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.auth-card input {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 13px 14px;
+
+    color: #12302d;
+    background: #f7faf9;
+    border: 1px solid #d3dfdc;
+    border-radius: 11px;
+
+    font-size: 15px;
+    outline: none;
+
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.auth-card input:focus {
+    border-color: #10a77b;
+    box-shadow: 0 0 0 3px rgba(16, 167, 123, 0.14);
+}
+
+#authSubmit {
+    margin-top: 5px;
+    padding: 14px;
+
+    color: #ffffff;
+    background: #10a77b;
+    border: none;
+    border-radius: 11px;
+
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+
+    transition:
+        transform 0.2s ease,
+        background 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+#authSubmit:hover {
+    background: #0d916c;
+    transform: translateY(-2px);
+    box-shadow: 0 9px 18px rgba(16, 167, 123, 0.25);
+}
+
+#authSubmit:disabled {
+    cursor: wait;
+    opacity: 0.65;
+}
+
+.auth-message {
+    min-height: 20px;
+    margin: 14px 0 4px;
+
+    color: #e5525b;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+}
+
+.auth-toggle {
+    width: 100%;
+    padding: 8px;
+
+    color: #10a77b;
+    background: transparent;
+    border: none;
+
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.auth-toggle:hover {
+    color: #087c5c;
+    text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+    .auth-screen {
+        padding: 16px;
+    }
+
+    .auth-card {
+        padding: 25px 21px;
+        border-radius: 20px;
+    }
+
+    .auth-card h1 {
+        font-size: 26px;
+    }
+}.password-field {
+    position: relative;
+}
+
+.password-field input {
+    padding-right: 52px;
+}
+
+#togglePassword {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+
+    width: 38px;
+    height: 38px;
+    padding: 0;
+
+    background: transparent;
+    border: none;
+    border-radius: 9px;
+
+    font-size: 19px;
+    cursor: pointer;
+}
+
+#togglePassword:hover {
+    background: #e8f3ef;
+}.user-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+#logoutButton {
+    padding: 9px 15px;
+
+    color: #e5525b;
+    background: #ffffff;
+    border: 1px solid #f0c7ca;
+    border-radius: 9px;
+
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease;
+}
+
+#logoutButton:hover {
+    color: #ffffff;
+    background: #e5525b;
 }
