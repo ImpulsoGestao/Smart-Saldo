@@ -27,7 +27,7 @@ import {
 
 import {
     initializeAppCheck,
-    ReCaptchaV3Provider
+    ReCaptchaEnterpriseProvider
 } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app-check.js";
 
 /* ==================================================
@@ -52,11 +52,11 @@ const db = getFirestore(firebaseApp);
    Depois de criar a chave reCAPTCHA v3 no Firebase, cole-a abaixo.
    Enquanto estiver vazio, o App Check permanece desativado.
 */
-const APP_CHECK_SITE_KEY = "";
+const APP_CHECK_SITE_KEY = "6LfHsJstAAAAAHE9iJYZYtabXneaCCsNBnlxjI4w";
 
 if (APP_CHECK_SITE_KEY) {
     initializeAppCheck(firebaseApp, {
-        provider: new ReCaptchaV3Provider(APP_CHECK_SITE_KEY),
+        provider: new ReCaptchaEnterpriseProvider(APP_CHECK_SITE_KEY),
         isTokenAutoRefreshEnabled: true
     });
 }
