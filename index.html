@@ -6,7 +6,7 @@
     <meta name="description" content="Controle suas receitas, despesas e saldo com o Smart Saldo.">
     <title>Smart Saldo</title>
     <link rel="icon" type="image/png" href="./favicon.png">
-    <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="./style.css?v=5">
 </head>
 <body>
     <div id="loadingScreen" class="loading-screen hidden" role="status" aria-live="polite">
@@ -50,9 +50,36 @@
                     <small>Somando todos os seus lançamentos até o mês selecionado</small>
                 </div>
                 <div class="stats">
-                    <div class="card"><p>Total de entradas</p><strong id="income" class="green">R$ 0,00</strong><small>neste mês</small></div>
-                    <div class="card"><p>Total de despesas</p><strong id="expense" class="red">R$ 0,00</strong><small>neste mês</small></div>
+                    <div class="card stat-card stat-card-income">
+                        <div class="stat-content">
+                            <p>Total de entradas</p>
+                            <strong id="income" class="green">R$ 0,00</strong>
+                            <small>neste mês</small>
+                        </div>
+                
+                        <span class="stat-icon stat-icon-income" aria-hidden="true">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M7 17 17 7M9 7h8v8"></path>
+                            </svg>
+                        </span>
+                    </div>
+                
+                    <div class="card stat-card stat-card-expense">
+                        <div class="stat-content">
+                            <p>Total de despesas</p>
+                            <strong id="expense" class="red">R$ 0,00</strong>
+                            <small>neste mês</small>
+                        </div>
+                
+                        <span class="stat-icon stat-icon-expense" aria-hidden="true">
+                            <svg viewBox="0 0 24 24">
+                                <path d="m7 7 10 10M17 9v8H9"></path>
+                            </svg>
+                        </span>
+                    </div>
                 </div>
+
+
                 <div class="summary">
                     <p class="eyebrow">RESUMO DO MÊS</p><h3 id="monthName"></h3>
                     <div class="row"><span>Entradas</span><div class="bar"><i id="incomeBar"></i></div><strong id="income2" class="green"></strong></div>

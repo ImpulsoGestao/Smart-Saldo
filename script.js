@@ -466,6 +466,19 @@ function renderChart() {
     const selectedMonth = chartMonth.value;
     const categoryTotals = {};
 
+    const chartColors = [
+        "#10a77b",
+        "#ef5b64",
+        "#f2aa3c",
+        "#4f7cff",
+        "#8b5cf6",
+        "#22a7b8",
+        "#f07bb5",
+        "#6f9f42",
+        "#e67e38",
+        "#64748b"
+    ];
+
     data.filter(function (transaction) {
         return transaction.type === "despesa" &&
             (!selectedMonth || transaction.date.startsWith(selectedMonth));
@@ -484,20 +497,54 @@ function renderChart() {
         return;
     }
 
-    const biggestValue = Math.max(...categories.map(function (item) {
-        return item[1];
-    }));
+    const totalExpense = categories.reduce(function (total, item) {
+        return total + item[1];
+    }, 0);
 
-    chartBars.innerHTML = categories.map(function ([categoryName, categoryValue]) {
-        const percentage = (categoryValue / biggestValue) * 100;
+    let accumulatedPercentage = 0;
+    const gradientParts = categories.map(function (item, index) {
+        const percentage = (item[1] / totalExpense) * 100;
+        const start = accumulatedPercentage;
+        accumulatedPercentage += percentage;
+        const color = chartColors[index % chartColors.length];
+
+        return `${color} ${start.toFixed(2)}% ${accumulatedPercentage.toFixed(2)}%`;
+    });
+
+    const legendItems = categories.map(function ([categoryName, categoryValue], index) {
+        const percentage = (categoryValue / totalExpense) * 100;
+        const color = chartColors[index % chartColors.length];
 
         return `
-            <div class="chart-row">
-                <span class="chart-category">${escapeHTML(categoryName)}</span>
-                <div class="chart-track"><div class="chart-fill" style="width: ${percentage}%"></div></div>
-                <strong class="chart-value">${formatador.format(categoryValue)}</strong>
+            <div class="legend-item">
+                <span class="legend-color" style="background: ${color}"></span>
+                <div class="legend-info">
+                    <span class="legend-category">${escapeHTML(categoryName)}</span>
+                    <span class="legend-percentage">${percentage.toFixed(1).replace(".", ",")}% do total</span>
+                </div>
+                <strong class="legend-value">${formatador.format(categoryValue)}</strong>
             </div>`;
     }).join("");
+
+    chartBars.innerHTML = `
+        <div class="chart-layout">
+            <div class="donut-panel">
+                <div
+                    class="donut-chart"
+                    style="background: conic-gradient(from -90deg, ${gradientParts.join(", ")})"
+                    role="img"
+                    aria-label="Gráfico de despesas por categoria. Total: ${formatador.format(totalExpense)}"
+                >
+                    <div class="donut-center">
+                        <span>Total</span>
+                        <strong>${formatador.format(totalExpense)}</strong>
+                    </div>
+                </div>
+            </div>
+            <div class="chart-legend" aria-label="Legenda do gráfico">
+                ${legendItems}
+            </div>
+        </div>`;
 }
 
 /* ==================================================
