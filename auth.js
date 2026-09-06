@@ -55,10 +55,14 @@ const db = getFirestore(firebaseApp);
 const APP_CHECK_SITE_KEY = "6LfHsJstAAAAAHE9iJYZYtabXneaCCsNBnlxjI4w";
 
 if (APP_CHECK_SITE_KEY) {
-    initializeAppCheck(firebaseApp, {
-        provider: new ReCaptchaEnterpriseProvider(APP_CHECK_SITE_KEY),
-        isTokenAutoRefreshEnabled: true
-    });
+    try {
+        initializeAppCheck(firebaseApp, {
+            provider: new ReCaptchaEnterpriseProvider(APP_CHECK_SITE_KEY),
+            isTokenAutoRefreshEnabled: true
+        });
+    } catch (error) {
+        console.error("Não foi possível iniciar o App Check:", error);
+    }
 }
 
 /* ==================================================
@@ -103,15 +107,41 @@ window.smartSaldoFirebase = {
         await deleteDoc(reference);
     },
 
-    async deleteAllTransactions(userId) {
-        const reference = collection(db, "users", userId, "transactions");
+    async loadRecurring(userId) {
+        const reference = collection(db, "users", userId, "recurring");
         const snapshot = await getDocs(reference);
 
-        await Promise.all(
-            snapshot.docs.map(function (transactionDocument) {
-                return deleteDoc(transactionDocument.ref);
+        return snapshot.docs
+            .map(function (recurringDocument) {
+                return recurringDocument.data();
             })
-        );
+            .sort(function (first, second) {
+                return Number(second.id) - Number(first.id);
+            });
+    },
+
+    async saveRecurring(userId, recurringItem) {
+        const reference = doc(db, "users", userId, "recurring", String(recurringItem.id));
+        await setDoc(reference, recurringItem);
+    },
+
+    async deleteRecurring(userId, recurringId) {
+        const reference = doc(db, "users", userId, "recurring", String(recurringId));
+        await deleteDoc(reference);
+    },
+
+    async deleteAllTransactions(userId) {
+        const transactionReference = collection(db, "users", userId, "transactions");
+        const recurringReference = collection(db, "users", userId, "recurring");
+        const [transactionSnapshot, recurringSnapshot] = await Promise.all([
+            getDocs(transactionReference),
+            getDocs(recurringReference)
+        ]);
+
+        await Promise.all([
+            ...transactionSnapshot.docs.map(function (item) { return deleteDoc(item.ref); }),
+            ...recurringSnapshot.docs.map(function (item) { return deleteDoc(item.ref); })
+        ]);
     }
 };
 
@@ -263,7 +293,13 @@ resetPasswordButton.addEventListener("click", async function () {
 ================================================== */
 
 onAuthStateChanged(auth, async function (user) {
-    await handleAuthenticatedUser(user);
+    try {
+        await handleAuthenticatedUser(user);
+    } catch (error) {
+        console.error("Erro ao iniciar a sessão:", error);
+        showOnlyScreen(user ? "app" : "auth");
+        dispatchAuthChange(user, user ? normalizeName(user.displayName || "") : "");
+    }
 });
 
 async function handleAuthenticatedUser(user) {
@@ -426,7 +462,7 @@ deleteAccountButton.addEventListener("click", async function () {
     }
 
     const confirmed = window.confirm(
-        "Deseja excluir permanentemente sua conta e todos os lançamentos?"
+        "Deseja excluir permanentemente sua conta, todos os lançamentos e as regras fixas?"
     );
 
     if (!confirmed) {
@@ -442,7 +478,7 @@ deleteAccountButton.addEventListener("click", async function () {
         await window.smartSaldoFirebase.deleteAllTransactions(user.uid);
         await deleteUser(user);
         profileModal.classList.add("hidden");
-        alert("Sua conta e seus lançamentos foram excluídos.");
+        alert("Sua conta, seus lançamentos e suas regras fixas foram excluídos.");
     } catch (error) {
         showProfileMessage(getAuthErrorMessage(error.code));
     } finally {

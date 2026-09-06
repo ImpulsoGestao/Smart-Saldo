@@ -3,9 +3,11 @@
 ================================================== */
 
 let data = [];
+let recurringData = [];
 let currentUserId = null;
 let currentUserName = "";
 let editingTransactionId = null;
+let editingRecurringId = null;
 
 const formatador = new Intl.NumberFormat("pt-BR", {
     style: "currency",
@@ -13,7 +15,10 @@ const formatador = new Intl.NumberFormat("pt-BR", {
 });
 
 const now = new Date();
-const today = now.toISOString().slice(0, 10);
+const today =
+    now.getFullYear() + "-" +
+    String(now.getMonth() + 1).padStart(2, "0") + "-" +
+    String(now.getDate()).padStart(2, "0");
 const currentMonth =
     now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
 
@@ -24,9 +29,11 @@ const currentMonth =
 const home = document.getElementById("home");
 const list = document.getElementById("list");
 const graph = document.getElementById("graph");
+const recurring = document.getElementById("recurring");
 const btnHome = document.getElementById("btnHome");
 const btnList = document.getElementById("btnList");
 const btnGraph = document.getElementById("btnGraph");
+const btnRecurring = document.getElementById("btnRecurring");
 const eyebrow = document.getElementById("eyebrow");
 const title = document.getElementById("title");
 
@@ -45,6 +52,12 @@ const chartMonth = document.getElementById("chartMonth");
 const chartBars = document.getElementById("chartBars");
 const dashboardMonth = document.getElementById("dashboardMonth");
 const monthName = document.getElementById("monthName");
+const homeReminders = document.getElementById("homeReminders");
+const recurringMonth = document.getElementById("recurringMonth");
+const recurringIncome = document.getElementById("recurringIncome");
+const recurringExpense = document.getElementById("recurringExpense");
+const recurringReminders = document.getElementById("recurringReminders");
+const recurringItems = document.getElementById("recurringItems");
 
 const transactionModal = document.getElementById("transactionModal");
 const modalTitle = document.getElementById("modalTitle");
@@ -56,6 +69,18 @@ const date = document.getElementById("date");
 const category = document.getElementById("category");
 const save = document.getElementById("save");
 const formMessage = document.getElementById("formMessage");
+const recurringModal = document.getElementById("recurringModal");
+const recurringModalTitle = document.getElementById("recurringModalTitle");
+const recurringForm = document.getElementById("recurringForm");
+const recurringType = document.getElementById("recurringType");
+const recurringDescription = document.getElementById("recurringDescription");
+const recurringValue = document.getElementById("recurringValue");
+const recurringDay = document.getElementById("recurringDay");
+const recurringCategory = document.getElementById("recurringCategory");
+const recurringStartMonth = document.getElementById("recurringStartMonth");
+const recurringEndMonth = document.getElementById("recurringEndMonth");
+const recurringFormMessage = document.getElementById("recurringFormMessage");
+const saveRecurring = document.getElementById("saveRecurring");
 
 const loadingScreen = document.getElementById("loadingScreen");
 const loadingText = document.getElementById("loadingText");
@@ -71,11 +96,14 @@ const toast = document.getElementById("toast");
 dashboardMonth.value = currentMonth;
 filterMonth.value = currentMonth;
 chartMonth.value = currentMonth;
+recurringMonth.value = currentMonth;
 date.value = today;
 date.max = today;
 
 dashboardMonth.addEventListener("change", render);
 chartMonth.addEventListener("change", renderChart);
+recurringMonth.addEventListener("change", renderRecurring);
+recurringType.addEventListener("change", fillRecurringCategories);
 exportButton.addEventListener("click", exportToExcel);
 privacyButton.addEventListener("click", function () {
     privacyModal.classList.remove("hidden");
@@ -90,17 +118,23 @@ window.addEventListener(
 
         if (!currentUserId) {
             data = [];
+            recurringData = [];
             render();
             renderChart();
+            renderRecurring();
             return;
         }
 
         showLoading("Carregando seus lançamentos...");
 
         try {
-            data = await window.smartSaldoFirebase.loadTransactions(currentUserId);
+            [data, recurringData] = await Promise.all([
+                window.smartSaldoFirebase.loadTransactions(currentUserId),
+                window.smartSaldoFirebase.loadRecurring(currentUserId)
+            ]);
             render();
             renderChart();
+            renderRecurring();
         } catch (error) {
             console.error("Erro ao carregar lançamentos:", error);
             showToast("Não foi possível carregar seus lançamentos.", "error");
@@ -124,10 +158,12 @@ function showView(view) {
     home.classList.toggle("hidden", view !== "home");
     list.classList.toggle("hidden", view !== "list");
     graph.classList.toggle("hidden", view !== "graph");
+    recurring.classList.toggle("hidden", view !== "recurring");
 
     btnHome.classList.toggle("active", view === "home");
     btnList.classList.toggle("active", view === "list");
     btnGraph.classList.toggle("active", view === "graph");
+    btnRecurring.classList.toggle("active", view === "recurring");
 
     if (view === "home") {
         eyebrow.textContent = "VISÃO GERAL";
@@ -135,10 +171,14 @@ function showView(view) {
     } else if (view === "list") {
         eyebrow.textContent = "ORGANIZE SEU DINHEIRO";
         title.textContent = "Lançamentos";
-    } else {
+    } else if (view === "graph") {
         eyebrow.textContent = "ANALISE SEUS GASTOS";
         title.textContent = "Gráficos";
         renderChart();
+    } else {
+        eyebrow.textContent = "ORGANIZE O QUE SE REPETE";
+        title.textContent = "Lançamentos fixos";
+        renderRecurring();
     }
 
     render();
@@ -417,6 +457,8 @@ function render() {
     incomeBar.style.width = (totalIncome / biggestValue) * 100 + "%";
     expenseBar.style.width = (totalExpense / biggestValue) * 100 + "%";
 
+    renderHomeReminders();
+
     const filteredTransactions = getFilteredTransactions();
 
     if (filteredTransactions.length === 0) {
@@ -545,6 +587,269 @@ function renderChart() {
                 ${legendItems}
             </div>
         </div>`;
+}
+
+/* ==================================================
+   RECEITAS E DESPESAS FIXAS
+================================================== */
+
+function fillRecurringCategories() {
+    const categories = recurringType.value === "receita" ? incomeCategories : expenseCategories;
+    recurringCategory.innerHTML = categories.map(function (categoryName) {
+        return `<option value="${escapeHTML(categoryName)}">${escapeHTML(categoryName)}</option>`;
+    }).join("");
+    saveRecurring.className = recurringType.value === "receita" ? "save income" : "save expense";
+}
+
+function openRecurringModal(recurringId = null) {
+    editingRecurringId = recurringId;
+    recurringFormMessage.textContent = "";
+    const item = recurringData.find(function (entry) { return entry.id === recurringId; });
+
+    recurringModalTitle.textContent = item ? "Editar lançamento fixo" : "Novo lançamento fixo";
+    recurringForm.reset();
+    recurringType.value = item ? item.type : "receita";
+    fillRecurringCategories();
+    recurringDescription.value = item ? item.description : "";
+    recurringValue.value = item ? item.value : "";
+    recurringDay.value = item ? item.day : "";
+    recurringStartMonth.value = item ? item.startMonth : currentMonth;
+    recurringEndMonth.value = item ? (item.endMonth || "") : "";
+    if (item) recurringCategory.value = item.category;
+    saveRecurring.textContent = item ? "Salvar alterações futuras" : "Salvar lançamento fixo";
+    recurringModal.classList.remove("hidden");
+    recurringDescription.focus();
+}
+
+function closeRecurringModal(event) {
+    if (event && event.target !== recurringModal) return;
+    recurringModal.classList.add("hidden");
+    editingRecurringId = null;
+    recurringFormMessage.textContent = "";
+}
+
+recurringForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+    if (!currentUserId) return;
+
+    const cleanDescription = recurringDescription.value.trim().replace(/\s+/g, " ");
+    const numericValue = Number(recurringValue.value);
+    const day = Number(recurringDay.value);
+    const startMonth = recurringStartMonth.value;
+    const endMonth = recurringEndMonth.value;
+
+    if (cleanDescription.length < 2 || cleanDescription.length > 80) {
+        showRecurringFormMessage("A descrição deve ter entre 2 e 80 caracteres."); return;
+    }
+    if (!Number.isFinite(numericValue) || numericValue <= 0 || numericValue > 999999999.99) {
+        showRecurringFormMessage("Digite um valor válido maior que zero."); return;
+    }
+    if (!Number.isInteger(day) || day < 1 || day > 31) {
+        showRecurringFormMessage("Escolha um dia entre 1 e 31."); return;
+    }
+    if (!/^\d{4}-\d{2}$/.test(startMonth) || (endMonth && endMonth < startMonth)) {
+        showRecurringFormMessage("Confira os meses de início e término."); return;
+    }
+
+    const previous = recurringData.find(function (entry) { return entry.id === editingRecurringId; });
+    const item = {
+        id: editingRecurringId ?? Date.now(),
+        type: recurringType.value,
+        description: cleanDescription,
+        value: Math.round(numericValue * 100) / 100,
+        day,
+        category: recurringCategory.value,
+        startMonth,
+        endMonth,
+        active: previous ? previous.active !== false : true,
+        createdAt: previous ? previous.createdAt : Date.now()
+    };
+    const wasEditingRecurring = editingRecurringId !== null;
+
+    saveRecurring.disabled = true;
+    showRecurringFormMessage("Salvando...", "success");
+    try {
+        await window.smartSaldoFirebase.saveRecurring(currentUserId, item);
+        recurringData = editingRecurringId === null
+            ? [item, ...recurringData]
+            : recurringData.map(function (entry) { return entry.id === editingRecurringId ? item : entry; });
+        closeRecurringModal();
+        renderRecurring();
+        render();
+        showToast(wasEditingRecurring ? "Lançamento fixo atualizado!" : "Lançamento fixo criado!");
+    } catch (error) {
+        console.error("Erro ao salvar lançamento fixo:", error);
+        showRecurringFormMessage("Não foi possível salvar. Verifique sua conexão.");
+    } finally {
+        saveRecurring.disabled = false;
+    }
+});
+
+function getRecurringForMonth(month) {
+    return recurringData.filter(function (item) {
+        return item.active !== false && item.startMonth <= month && (!item.endMonth || item.endMonth >= month);
+    });
+}
+
+function getOccurrenceDate(item, month) {
+    const [year, monthNumber] = month.split("-").map(Number);
+    const lastDay = new Date(year, monthNumber, 0).getDate();
+    return `${month}-${String(Math.min(Number(item.day), lastDay)).padStart(2, "0")}`;
+}
+
+function getConfirmedTransaction(item, month) {
+    return data.find(function (transaction) {
+        return String(transaction.recurringId || "") === String(item.id) && transaction.recurringMonth === month;
+    });
+}
+
+function getOccurrenceStatus(item, month) {
+    if (getConfirmedTransaction(item, month)) return "confirmed";
+    const occurrenceDate = getOccurrenceDate(item, month);
+    if (occurrenceDate < today) return "late";
+    if (occurrenceDate === today) return "today";
+    return "upcoming";
+}
+
+async function confirmRecurring(recurringId, editValue = false, monthOverride = null) {
+    const item = recurringData.find(function (entry) { return entry.id === recurringId; });
+    const month = monthOverride || recurringMonth.value || currentMonth;
+    if (!item || !currentUserId || getConfirmedTransaction(item, month)) {
+        showToast("Esse lançamento já foi confirmado.", "error"); return;
+    }
+
+    let confirmedValue = item.value;
+    if (editValue) {
+        const informedValue = window.prompt("Informe o valor recebido ou pago neste mês:", String(item.value));
+        if (informedValue === null) return;
+        confirmedValue = Number(String(informedValue).replace(",", "."));
+        if (!Number.isFinite(confirmedValue) || confirmedValue <= 0) {
+            showToast("Digite um valor válido.", "error"); return;
+        }
+    }
+
+    const transaction = {
+        id: Date.now(), type: item.type, description: item.description,
+        value: Math.round(confirmedValue * 100) / 100,
+        date: getOccurrenceDate(item, month), category: item.category,
+        recurringId: item.id, recurringMonth: month
+    };
+
+    showLoading(item.type === "receita" ? "Confirmando recebimento..." : "Confirmando pagamento...");
+    try {
+        await window.smartSaldoFirebase.saveTransaction(currentUserId, transaction);
+        data.unshift(transaction);
+        render(); renderChart(); renderRecurring();
+        showToast(item.type === "receita" ? "Recebimento confirmado!" : "Pagamento confirmado!");
+    } catch (error) {
+        console.error("Erro ao confirmar lançamento fixo:", error);
+        showToast("Não foi possível confirmar.", "error");
+    } finally { hideLoading(); }
+}
+
+async function cancelRecurringConfirmation(recurringId, monthOverride = null) {
+    const item = recurringData.find(function (entry) { return entry.id === recurringId; });
+    const month = monthOverride || recurringMonth.value || currentMonth;
+    const confirmedTransaction = item ? getConfirmedTransaction(item, month) : null;
+
+    if (!item || !confirmedTransaction || !currentUserId) {
+        showToast("Não encontramos essa confirmação.", "error");
+        return;
+    }
+
+    const confirmed = window.confirm(
+        `Cancelar a confirmação de "${item.description}" neste mês? O lançamento será retirado do saldo.`
+    );
+
+    if (!confirmed) return;
+
+    showLoading("Cancelando confirmação...");
+    try {
+        await window.smartSaldoFirebase.deleteTransaction(currentUserId, confirmedTransaction.id);
+        data = data.filter(function (transaction) {
+            return transaction.id !== confirmedTransaction.id;
+        });
+        render();
+        renderChart();
+        renderRecurring();
+        showToast("Confirmação cancelada e saldo atualizado!");
+    } catch (error) {
+        console.error("Erro ao cancelar confirmação:", error);
+        showToast("Não foi possível cancelar a confirmação.", "error");
+    } finally {
+        hideLoading();
+    }
+}
+
+async function toggleRecurring(recurringId) {
+    const item = recurringData.find(function (entry) { return entry.id === recurringId; });
+    if (!item || !currentUserId) return;
+    const updated = { ...item, active: item.active === false };
+    try {
+        await window.smartSaldoFirebase.saveRecurring(currentUserId, updated);
+        recurringData = recurringData.map(function (entry) { return entry.id === recurringId ? updated : entry; });
+        renderRecurring(); render();
+        showToast(updated.active ? "Lançamento reativado!" : "Lançamento pausado!");
+    } catch (error) { showToast("Não foi possível alterar o lançamento.", "error"); }
+}
+
+async function deleteRecurringItem(recurringId) {
+    if (!currentUserId || !window.confirm("Excluir este lançamento fixo? Os meses já confirmados serão preservados.")) return;
+    try {
+        await window.smartSaldoFirebase.deleteRecurring(currentUserId, recurringId);
+        recurringData = recurringData.filter(function (entry) { return entry.id !== recurringId; });
+        renderRecurring(); render(); showToast("Lançamento fixo excluído!");
+    } catch (error) { showToast("Não foi possível excluir.", "error"); }
+}
+
+function occurrenceCard(item, month, compact = false) {
+    const status = getOccurrenceStatus(item, month);
+    const statusLabels = { confirmed: "Confirmado", late: "Atrasado", today: "Vence hoje", upcoming: "Próximo" };
+    const actionLabel = item.type === "receita" ? "Confirmar recebimento" : "Confirmar pagamento";
+    const actions = status === "confirmed"
+        ? `<div class="reminder-actions"><button class="cancel-confirmation" type="button" onclick="cancelRecurringConfirmation(${Number(item.id)}, '${month}')">Cancelar confirmação</button></div>`
+        : `<div class="reminder-actions"><button type="button" onclick="confirmRecurring(${Number(item.id)}, false, '${month}')">${actionLabel}</button><button class="text-button" type="button" onclick="confirmRecurring(${Number(item.id)}, true, '${month}')">Editar valor</button></div>`;
+    return `<div class="reminder-item ${status} ${compact ? "compact" : ""}">
+        <span class="reminder-icon">${item.type === "receita" ? "↗" : "↘"}</span>
+        <div class="reminder-info"><strong>${escapeHTML(item.description)}</strong><span>${escapeHTML(item.category)} · dia ${Number(item.day)} · ${formatador.format(item.value)}</span></div>
+        <span class="status-badge ${status}">${statusLabels[status]}</span>
+        ${actions}
+    </div>`;
+}
+
+function renderHomeReminders() {
+    const dueItems = getRecurringForMonth(currentMonth).filter(function (item) {
+        const status = getOccurrenceStatus(item, currentMonth);
+        return status === "today" || status === "late";
+    });
+    homeReminders.innerHTML = dueItems.length
+        ? dueItems.map(function (item) { return occurrenceCard(item, currentMonth, true); }).join("")
+        : '<div class="empty reminder-empty">Nenhuma confirmação pendente para hoje.</div>';
+}
+
+function renderRecurring() {
+    const month = recurringMonth.value || currentMonth;
+    const monthItems = getRecurringForMonth(month);
+    recurringIncome.textContent = formatador.format(sumByType(monthItems, "receita"));
+    recurringExpense.textContent = formatador.format(sumByType(monthItems, "despesa"));
+    recurringReminders.innerHTML = monthItems.length
+        ? monthItems.map(function (item) { return occurrenceCard(item, month); }).join("")
+        : '<div class="empty">Nenhum lançamento fixo previsto para este mês.</div>';
+
+    recurringItems.innerHTML = recurringData.length ? recurringData.map(function (item) {
+        const period = `${item.startMonth.split("-").reverse().join("/")} ${item.endMonth ? "até " + item.endMonth.split("-").reverse().join("/") : "em diante"}`;
+        return `<div class="recurring-rule ${item.active === false ? "paused" : ""}">
+            <span class="recurring-type ${item.type}">${item.type === "receita" ? "Receita" : "Despesa"}</span>
+            <div><strong>${escapeHTML(item.description)}</strong><span>${escapeHTML(item.category)} · todo dia ${Number(item.day)} · ${period}</span></div>
+            <strong class="${item.type === "receita" ? "green" : "red"}">${formatador.format(item.value)}</strong>
+            <span class="rule-actions"><button type="button" onclick="openRecurringModal(${Number(item.id)})">Editar</button><button type="button" onclick="toggleRecurring(${Number(item.id)})">${item.active === false ? "Ativar" : "Pausar"}</button><button class="delete-rule" type="button" onclick="deleteRecurringItem(${Number(item.id)})">Excluir</button></span>
+        </div>`;
+    }).join("") : '<div class="empty">Você ainda não cadastrou lançamentos fixos.</div>';
+}
+
+function showRecurringFormMessage(message, type = "error") {
+    recurringFormMessage.textContent = message;
+    recurringFormMessage.classList.toggle("success-message", type === "success");
 }
 
 /* ==================================================
@@ -682,3 +987,4 @@ function escapeHTML(text) {
 
 render();
 renderChart();
+renderRecurring();

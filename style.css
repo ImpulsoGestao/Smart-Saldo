@@ -336,6 +336,147 @@ button:disabled {
     padding: 25px;
 }
 
+/* ==================================================
+   LANÇAMENTOS FIXOS E LEMBRETES
+================================================== */
+
+.reminders-card,
+.recurring-list-card {
+    margin-top: 22px;
+    padding: 24px;
+    background: #ffffff;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: 0 8px 25px rgba(18, 48, 45, 0.04);
+}
+
+.reminders-heading,
+.recurring-header,
+.recurring-toolbar,
+.recurring-list-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.reminders-heading h3,
+.recurring-header h2,
+.recurring-list-title h3 { margin: 3px 0; }
+.recurring-header > div > span,
+.recurring-list-title > span,
+.field-help { color: var(--muted); font-size: 13px; }
+
+.text-button {
+    padding: 7px 10px;
+    color: var(--green);
+    background: transparent;
+    border: 0;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.recurring-header { margin-bottom: 20px; }
+.recurring-toolbar {
+    margin-bottom: 18px;
+    padding: 18px;
+    background: #f4faf8;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+}
+.recurring-toolbar label { display: grid; gap: 7px; font-weight: 800; }
+.recurring-toolbar input { padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; }
+.recurring-summary { display: flex; gap: 24px; }
+.recurring-summary span { display: grid; gap: 4px; color: var(--muted); font-size: 13px; }
+.recurring-summary strong { font-size: 18px; }
+
+.reminders-list,
+.recurring-reminders,
+.recurring-items { display: grid; gap: 11px; }
+.recurring-reminders { margin-bottom: 20px; }
+.reminder-item {
+    display: grid;
+    grid-template-columns: auto minmax(180px, 1fr) auto auto;
+    align-items: center;
+    gap: 13px;
+    padding: 15px;
+    background: #ffffff;
+    border: 1px solid var(--line);
+    border-left: 4px solid #94a3b8;
+    border-radius: 14px;
+}
+.reminder-item.today { border-left-color: #f2aa3c; }
+.reminder-item.late { border-left-color: var(--red); background: #fffafa; }
+.reminder-item.confirmed { border-left-color: var(--green); opacity: 0.82; }
+.reminder-icon { font-size: 25px; color: var(--green); font-weight: 900; }
+.reminder-info { display: grid; gap: 4px; }
+.reminder-info span { color: var(--muted); font-size: 13px; }
+.status-badge { padding: 6px 9px; border-radius: 999px; background: #eef2f1; font-size: 12px; font-weight: 800; white-space: nowrap; }
+.status-badge.today { color: #8b5a00; background: #fff4d9; }
+.status-badge.late { color: #a52d38; background: #ffe8ea; }
+.status-badge.confirmed { color: #087b5a; background: #e4f7f0; }
+.reminder-actions { display: flex; align-items: center; gap: 6px; }
+.reminder-actions > button:first-child {
+    padding: 9px 12px;
+    color: #ffffff;
+    background: var(--green);
+    border: 0;
+    border-radius: 9px;
+    font-weight: 800;
+    cursor: pointer;
+}
+.reminder-actions > .cancel-confirmation {
+    color: var(--red);
+    background: #ffffff;
+    border: 1px solid rgba(239, 91, 100, 0.38);
+}
+.reminder-actions > .cancel-confirmation:hover {
+    color: #ffffff;
+    background: var(--red);
+    border-color: var(--red);
+}
+.reminder-empty { padding: 15px 0; }
+
+.recurring-rule {
+    display: grid;
+    grid-template-columns: auto minmax(190px, 1fr) auto auto;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+}
+.recurring-rule:last-child { border-bottom: 0; }
+.recurring-rule.paused { opacity: 0.55; }
+.recurring-rule > div { display: grid; gap: 4px; }
+.recurring-rule > div span { color: var(--muted); font-size: 13px; }
+.recurring-type { padding: 6px 9px; border-radius: 8px; font-size: 12px; font-weight: 900; }
+.recurring-type.receita { color: #087b5a; background: #e4f7f0; }
+.recurring-type.despesa { color: #a52d38; background: #ffe8ea; }
+.rule-actions { display: flex; gap: 5px; }
+.rule-actions button { padding: 7px 8px; border: 1px solid var(--line); border-radius: 8px; background: #fff; cursor: pointer; font-weight: 700; }
+.rule-actions .delete-rule { color: var(--red); }
+
+@media (max-width: 800px) {
+    .recurring-header,
+    .recurring-toolbar { align-items: stretch; flex-direction: column; }
+    .recurring-summary { justify-content: space-between; }
+    .reminder-item,
+    .recurring-rule { grid-template-columns: auto minmax(0, 1fr); }
+    .status-badge,
+    .reminder-actions,
+    .recurring-rule > strong,
+    .rule-actions { grid-column: 2; justify-self: start; }
+}
+
+@media (max-width: 480px) {
+    .reminders-card,
+    .recurring-list-card { padding: 17px; }
+    .reminders-heading { align-items: flex-start; }
+    .recurring-summary { flex-direction: column; gap: 10px; }
+    .reminder-actions,
+    .rule-actions { flex-wrap: wrap; }
+}
+
 .stat-card {
     position: relative;
     min-height: 150px;

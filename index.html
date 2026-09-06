@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Controle suas receitas, despesas e saldo com o Smart Saldo.">
     <title>Smart Saldo</title>
-    <link rel="icon" type="image/png" href="./favicon.png">
-    <link rel="stylesheet" href="./style.css?v=5">
+    <link rel="icon" type="image/png" href="./favicon12.png">
+    <link rel="stylesheet" href="./style.css?v=7">
 </head>
 <body>
     <div id="loadingScreen" class="loading-screen hidden" role="status" aria-live="polite">
@@ -17,13 +17,14 @@
     <div id="appContent" class="app hidden">
         <aside class="side">
             <div class="brand">
-                <span class="logo"><img src="./logo-smart-saldo.png"Logo Smart Saldo"></span>
+                <span class="logo"><img src="./logo-smart-saldo.png" alt="Logo Smart Saldo"></span>
                 <div><strong>Smart Saldo</strong><small>Receitas, despesas e saldo em um só lugar</small></div>
             </div>
             <nav class="nav" aria-label="Menu principal">
                 <button id="btnHome" class="active" type="button" onclick="showView('home')">≡ Início</button>
                 <button id="btnList" type="button" onclick="showView('list')">⬆️ Lançamentos</button>
                 <button id="btnGraph" type="button" onclick="showView('graph')">📊 Gráfico</button>
+                <button id="btnRecurring" type="button" onclick="showView('recurring')">🔁 Fixos</button>
             </nav>
             <div class="safe">
                 <span>✓ Seus dados ficam protegidos na sua conta.</span>
@@ -85,6 +86,13 @@
                     <div class="row"><span>Entradas</span><div class="bar"><i id="incomeBar"></i></div><strong id="income2" class="green"></strong></div>
                     <div class="row"><span>Despesas</span><div class="bar"><i id="expenseBar" class="red"></i></div><strong id="expense2" class="red"></strong></div>
                 </div>
+                <div class="reminders-card">
+                    <div class="reminders-heading">
+                        <div><p class="eyebrow">LEMBRETES</p><h3>Confirmações pendentes</h3></div>
+                        <button class="text-button" type="button" onclick="showView('recurring')">Ver todos</button>
+                    </div>
+                    <div id="homeReminders" class="reminders-list"></div>
+                </div>
                 <div class="actions">
                     <button class="income" type="button" onclick="openModal('receita')">＋ Adicionar receita</button>
                     <button class="expense" type="button" onclick="openModal('despesa')">− Adicionar despesa</button>
@@ -123,6 +131,25 @@
                     <label>Selecione o mês<input id="chartMonth" type="month"></label>
                 </div>
                 <div class="chart-card"><div id="chartBars" class="chart-bars"><div class="chart-empty">Nenhuma despesa encontrada.</div></div></div>
+            </section>
+
+            <section id="recurring" class="hidden">
+                <div class="recurring-header">
+                    <div><p class="eyebrow">PLANEJAMENTO MENSAL</p><h2>Receitas e despesas fixas</h2><span>Cadastre uma vez e confirme quando o dia chegar.</span></div>
+                    <button class="primary-button" type="button" onclick="openRecurringModal()">＋ Novo lançamento fixo</button>
+                </div>
+                <div class="recurring-toolbar">
+                    <label>Visualizar mês<input id="recurringMonth" type="month"></label>
+                    <div class="recurring-summary">
+                        <span>Receitas previstas <strong id="recurringIncome" class="green">R$ 0,00</strong></span>
+                        <span>Despesas previstas <strong id="recurringExpense" class="red">R$ 0,00</strong></span>
+                    </div>
+                </div>
+                <div id="recurringReminders" class="recurring-reminders"></div>
+                <div class="recurring-list-card">
+                    <div class="recurring-list-title"><h3>Meus lançamentos fixos</h3><span>Edite, pause ou encerre quando precisar.</span></div>
+                    <div id="recurringItems" class="recurring-items"></div>
+                </div>
             </section>
         </main>
     </div>
@@ -176,6 +203,29 @@
         </div>
     </div>
 
+    <div id="recurringModal" class="backdrop hidden" onclick="closeRecurringModal(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <button class="close" type="button" onclick="closeRecurringModal()" aria-label="Fechar">×</button>
+            <p class="eyebrow">LANÇAMENTO FIXO</p><h2 id="recurringModalTitle">Novo lançamento fixo</h2>
+            <form id="recurringForm">
+                <label>Tipo<select id="recurringType" required><option value="receita">Receita fixa</option><option value="despesa">Despesa fixa</option></select></label>
+                <label>Descrição<input id="recurringDescription" minlength="2" maxlength="80" required placeholder="Ex.: Salário ou aluguel"></label>
+                <div class="formrow">
+                    <label>Valor previsto (R$)<input id="recurringValue" type="number" min="0.01" max="999999999.99" step="0.01" required></label>
+                    <label>Dia previsto<input id="recurringDay" type="number" min="1" max="31" required></label>
+                </div>
+                <label>Categoria<select id="recurringCategory" required></select></label>
+                <div class="formrow">
+                    <label>Mês de início<input id="recurringStartMonth" type="month" required></label>
+                    <label>Mês final (opcional)<input id="recurringEndMonth" type="month"></label>
+                </div>
+                <p class="field-help">Se o mês final ficar vazio, o lançamento continuará todos os meses até ser pausado ou excluído.</p>
+                <p id="recurringFormMessage" class="form-message" aria-live="polite"></p>
+                <button id="saveRecurring" class="save income" type="submit">Salvar lançamento fixo</button>
+            </form>
+        </div>
+    </div>
+
     <div id="profileModal" class="backdrop hidden" onclick="closeProfileModal(event)">
         <div class="modal" onclick="event.stopPropagation()">
             <button class="close" type="button" onclick="closeProfileModal()" aria-label="Fechar">×</button>
@@ -186,7 +236,7 @@
                 <button class="primary-button" type="submit">Salvar novo nome</button>
             </form>
             <div class="danger-zone">
-                <h3>Excluir conta</h3><p>Esta ação apaga permanentemente a conta e todos os lançamentos.</p>
+                <h3>Excluir conta</h3><p>Esta ação apaga permanentemente a conta, os lançamentos e as regras fixas.</p>
                 <label>Digite sua senha atual para confirmar<input id="deleteAccountPassword" type="password" autocomplete="current-password"></label>
                 <button id="deleteAccountButton" class="danger-button" type="button">Excluir minha conta</button>
             </div>
@@ -199,7 +249,7 @@
             <button class="close" type="button" onclick="closePrivacyModal()" aria-label="Fechar">×</button>
             <p class="eyebrow">PRIVACIDADE</p><h2>Como seus dados são utilizados</h2>
             <p>O Smart Saldo utiliza seu nome e e-mail para identificar sua conta.</p>
-            <p>Receitas e despesas são armazenadas no Firebase e ficam vinculadas ao seu usuário.</p>
+            <p>Receitas, despesas e lançamentos fixos são armazenados no Firebase e ficam vinculados ao seu usuário.</p>
             <p>Outros usuários não podem acessar seus lançamentos pelas regras de segurança do banco.</p>
             <p>Suas informações não devem ser vendidas ou compartilhadas para publicidade.</p>
             <p>Você pode excluir sua conta e seus lançamentos em <strong>Minha conta</strong>.</p>
@@ -209,7 +259,7 @@
 
     <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-    <script src="./script.js"></script>
-    <script type="module" src="./auth.js"></script>
+    <script src="./script.js?v=7"></script>
+    <script type="module" src="./auth.js?v=7"></script>
 </body>
 </html>

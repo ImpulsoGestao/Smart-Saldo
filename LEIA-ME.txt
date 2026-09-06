@@ -1,0 +1,45 @@
+SMART SALDO — LANÇAMENTOS FIXOS
+
+ARQUIVOS DESTA VERSÃO
+- index.html
+- style.css
+- script.js
+- auth.js
+- favicon.png
+- logo-smart-saldo.png
+- firestore.rules (regra recomendada para o Firebase)
+
+O QUE FOI ADICIONADO
+- Menu "Fixos" para cadastrar salário, aluguel, contas e outras recorrências.
+- Receita fixa e despesa fixa com valor, categoria, dia e período.
+- Visão mensal de valores previstos.
+- Lembretes dentro do aplicativo no dia do vencimento e depois dele.
+- Confirmação de recebimento/pagamento antes de afetar o saldo.
+- Opção de ajustar o valor apenas no mês confirmado.
+- Cancelamento de uma confirmação feita por engano, com atualização do saldo.
+- Edição, pausa, reativação e exclusão da regra fixa.
+- Meses já confirmados são preservados ao excluir a regra.
+
+COMO TESTAR
+1. Substitua os arquivos antigos pelos arquivos desta pasta.
+2. Abra a pasta correta no VS Code e inicie o Live Server pelo index.html.
+3. Faça login.
+4. Entre no menu "Fixos" e clique em "Novo lançamento fixo".
+5. Cadastre um salário ou uma despesa com o dia de hoje.
+6. Confirme o recebimento/pagamento e confira o lançamento e o saldo.
+
+IMPORTANTE SOBRE O FIREBASE
+Os dados antigos não são apagados. As regras fixas usam a nova subcoleção
+users/{usuario}/recurring e os lançamentos confirmados continuam em transactions.
+
+Se aparecer o erro "Missing or insufficient permissions", atualize as regras no
+Firebase Console > Firestore Database > Regras usando o conteúdo de firestore.rules
+e clique em Publicar. Faça isso apenas depois de comparar com suas regras atuais.
+
+PUBLICAÇÃO NO GIT
+git add .
+git commit -m "Adiciona receitas e despesas fixas com lembretes"
+git push origin main
+
+Os lembretes desta versão aparecem dentro do Smart Saldo. Notificações push no
+celular exigem uma etapa futura com Service Worker e Firebase Cloud Messaging.
